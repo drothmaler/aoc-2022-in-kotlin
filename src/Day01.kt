@@ -1,17 +1,19 @@
 fun main() {
-    fun part1(input: List<String>): Int {
-        return input.size
-    }
+    fun calorieCounting(input: Sequence<String>): Sequence<Int> =
+        input
+            .map { it.toIntOrNull() }
+            .splitByNull()
+            .map { it.sum() }
 
-    fun part2(input: List<String>): Int {
-        return input.size
-    }
+    fun top3(input: Sequence<String>) : List<Int> = calorieCounting(input).sortedDescending().take(3).toList()
 
     // test if implementation meets criteria from the description, like:
-    val testInput = readInput("Day01_test")
-    check(part1(testInput) == 1)
+    val testOutput = useSanitizedInput("Day01_test", ::top3)
+    check(testOutput == listOf(24000, 11000, 10000))
+    check(testOutput.max() == 24000)
+    check(testOutput.sum() == 45000)
 
-    val input = readInput("Day01")
-    println(part1(input))
-    println(part2(input))
+    val output = useSanitizedInput("Day01", ::top3)
+    println(output.max())
+    println(output.sum())
 }
