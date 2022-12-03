@@ -6,14 +6,18 @@ import java.security.MessageDigest
  * Reads lines from the given input txt file.
  */
 fun readInput(name: String) = File("src", "$name.txt")
-    .readLines()
+    .readLines().map(String::sanitize)
+
+fun readSanitizedInput(name: String) = readInput(name).map(String::sanitize)
 
 fun <T> useInput(name: String, block: (Sequence<String>) -> T) = File("src", "$name.txt")
     .useLines(block = block)
 
 fun <T> useSanitizedInput(name: String, block: (Sequence<String>) -> T) = useInput(name) {
-    block(it.map(String::trim))
+    block(it.map(String::sanitize))
 }
+
+fun String.sanitize() = this.trim()
 
 /**
  * Converts string to md5 hash.
