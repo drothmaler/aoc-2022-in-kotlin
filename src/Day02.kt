@@ -3,21 +3,27 @@ enum class Shape (val opponent: Char, val response: Char, val score: Int) {
     Paper('B', 'Y', 2),
     Scissors('C', 'Z', 3);
 
-    fun fight(other: Shape): Outcome {
-        if (this == other) return Outcome.Draw
+    private val beats get() = relative(-1)
+    private val loosesTo get() = relative(+1)
+    private fun relative(delta:Int) = Shape.values()[(this.ordinal + delta + size) % size]
 
-        if (this == Rock && other == Scissors) return Outcome.Won
-        if (this == Paper && other == Rock) return Outcome.Won
-        if (this == Scissors && other == Paper) return Outcome.Won
-
-        return Outcome.Lost
+    fun fight(other: Shape): Outcome = when (other) {
+        this -> Outcome.Draw
+        this.beats -> Outcome.Won
+        else -> Outcome.Lost
     }
 
-    fun byOutcome(outcome: Outcome) = Shape.values().find { it.fight(this) == outcome }!!
+    fun byOutcome(outcome: Outcome) = when(outcome) {
+        Outcome.Lost -> this.beats
+        Outcome.Draw -> this
+        Outcome.Won -> this.loosesTo
+    }
 
     companion object {
         fun byOpponent(char: Char) = Shape.values().find { it.opponent == char }!!
         fun byResponse(char: Char) = Shape.values().find { it.response == char }!!
+
+        val size get() = Shape.values().size
     }
 }
 
@@ -42,9 +48,10 @@ class Strategy(val opponent: Shape, val response: Shape) {
         )
 
         fun byOutcome(string: String): Strategy {
-            var opponent = Shape.byOpponent(string[0])
-            var outcome = Outcome.byCode(string[2])
-            var response = opponent.byOutcome(outcome)
+            val opponent = Shape.byOpponent(string[0])
+            val outcome = Outcome.byCode(string[2])
+            val response = opponent.byOutcome(outcome)
+
             return Strategy(opponent, response)
         }
     }
