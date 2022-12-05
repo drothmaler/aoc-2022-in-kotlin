@@ -17,7 +17,7 @@ fun <T> useSanitizedInput(name: String, block: (Sequence<String>) -> T) = useInp
     block(it.map(String::sanitize))
 }
 
-fun String.sanitize() = this.trim()
+fun String.sanitize() = this.trimEnd()
 
 /**
  * Converts string to md5 hash.
@@ -30,6 +30,9 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
 fun <T> Sequence<T>.splitByNull() =
     splitIf { it == null }
     .map { it.filterNotNull() }
+
+fun Sequence<String>.splitByBlank() =
+        splitIf { it.isNullOrBlank() }
 
 fun <T> Sequence<T>.splitIf(isSplitter: (T) -> Boolean) = sequence {
     val iter = iterator()

@@ -19,4 +19,10 @@ tasks {
         gradleVersion = "7.6"
         distributionType = DistributionType.ALL
     }
+
+    compileKotlin {
+        kotlinOptions.freeCompilerArgs += "-opt-in=kotlin.ExperimentalStdlibApi"
+        kotlinOptions.freeCompilerArgs += "-opt-in=kotlin.time.ExperimentalTime"
+    }
 }
+
