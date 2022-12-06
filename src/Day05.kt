@@ -2,8 +2,6 @@ import Crate.Companion.chars
 import Crate.Companion.print
 import kotlin.time.measureTime
 
-var debug = false
-
 @JvmInline
 value class Crate(val char:Char) {
     override fun toString() = if (char == ' ') "   " else "[$char]"
@@ -29,37 +27,57 @@ data class Movement(val count:Int, val from:Int, val to:Int) {
         private fun MatchResult.value(name: String) = groups[name]!!.value.toInt()
 
         fun parse(description: String): Movement {
+            //description.chars()
             val movement = pattern.matchEntire(description)!!
             return Movement(movement.value("count"), movement.value("from"), movement.value("to"))
         }
     }
 }
 
-class SupplyStacks(private val stacks: Array<ArrayDeque<Crate>>) {
-    fun moveCrates(iter: Iterator<String>) {
-        iter.forEachRemaining {
-            val m = Movement.parse(it)
+// class FastList<T>(private val items: Array)
 
-            for (i in 0..<m.count) {
-                stacks[m.to-1].addLast(stacks[m.from-1].removeLast())
+class SupplyStacks {
+
+    private val stacks: Array<Array<Crate?>>
+    private val stackSize: IntArray
+
+    private constructor(stacks: Array<List<Crate>>) {
+        val capacity = stacks.sumOf { it.size }
+        this.stacks = Array(stacks.size) { s ->
+            val stack = stacks[s]
+            Array(capacity) { i ->
+                if (i < stack.size) stack[i] else null
             }
         }
+        this.stackSize = stacks.map { it.size }.toIntArray()
     }
 
-    fun moveCrates2(iter: Iterator<String>) {
-        val craneStack = ArrayDeque<Crate>(50)
-        iter.forEachRemaining {
-            val m = Movement.parse(it)
+    enum class MoveStyle { OneByOne, Stack }
 
-            for (i in 0..<m.count) {
-                craneStack.addLast(stacks[m.from-1].removeLast())
-            }
-            for (i in 0..<m.count) {
-                stacks[m.to-1].addLast(craneStack.removeLast())
-            }
+    private fun moveCrates(count: Int, from: Int, to:Int) {
+        val source = stacks[from]
+        val target = stacks[to]
+
+        val s = stackSize[from]-count
+        val t = stackSize[to]
+
+        for (i in 0..<count) {
+            target[t+i] = source[s+i]
+        }
+
+        stackSize[from] -= count
+        stackSize[to] += count
+    }
+
+    fun moveCrates(iter: Iterator<String>, moveStyle: MoveStyle) = iter.forEachRemaining {
+        val m = Movement.parse(it)
+
+        when (moveStyle) {
+            MoveStyle.OneByOne -> for (i in 0..<m.count) moveCrates(1, m.from-1, m.to-1)
+            MoveStyle.Stack -> moveCrates(m.count, m.from-1, m.to-1)
         }
     }
-
+/*
     private fun printStack() {
         val maxHeight = stacks.maxOf { it.size }
         for (i in (maxHeight - 1).downTo(0)) {
@@ -67,36 +85,38 @@ class SupplyStacks(private val stacks: Array<ArrayDeque<Crate>>) {
         }
         println()
     }
+ */
 
-    val size get() = stacks.sumOf { it.size }
+    val size get() = stackSize.sum()
 
-    val topItems get() = stacks.map { it.lastOrNull() ?: Crate.empty }
+    val topItems get() = stacks.mapIndexed{ s, crates -> crates[stackSize[s] - 1] ?: Crate.empty}
 
     companion object {
         fun parse(iterator: Iterator<String>): SupplyStacks {
-            val stacks = mutableListOf<MutableList<Crate>>()
+            val lines = mutableListOf<CharArray>()
 
             while (iterator.hasNext()) {
                 val current = iterator.next()
+                if (current.isNullOrBlank()) break
+
                 val line = current.chunked(4) { it[1] }
                 if (line.any { it.isDigit() }) continue
-                if (line.isEmpty()) break
 
-                while (stacks.size < line.size) stacks.add(ArrayDeque())
-
-                line.mapIndexed { index, c ->
-                    if (c.isLetter()) stacks[index].add(Crate(c))
-                }
+                lines.add(line.toCharArray())
             }
-            val size = stacks.sumOf { it.size }
 
-            return SupplyStacks(
-                stacks.map {
-                    val stack = ArrayDeque<Crate>(size)
-                    stack.addAll(it.asReversed())
-                    stack
-                }.toTypedArray()
-            )
+            while (stacks.size < line.size) stacks.add(CharArray())
+
+            line.mapIndexed { index, c ->
+                if (c.isLetter()) stacks[index].add(Crate(c))
+            }
+
+
+            stacks.forEach {
+                it.reverse()
+            }
+
+            return SupplyStacks(stacks.toTypedArray())
         }
     }
 }
@@ -105,7 +125,7 @@ fun main() {
     fun part1(input: Sequence<String>): String {
         val iter = input.iterator()
         val ss = SupplyStacks.parse(iter)
-        ss.moveCrates(iter)
+        ss.moveCrates(iter, SupplyStacks.MoveStyle.OneByOne)
 
         return ss.topItems.chars
     }
@@ -113,7 +133,7 @@ fun main() {
     fun part2(input: Sequence<String>): String {
         val iter = input.iterator()
         val ss = SupplyStacks.parse(iter)
-        ss.moveCrates2(iter)
+        ss.moveCrates(iter, SupplyStacks.MoveStyle.Stack)
 
         return ss.topItems.chars
     }
